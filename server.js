@@ -2,6 +2,11 @@ const express = require('express');
 const app = express();
 app.use(express.json());
 
+const swaggerUi = require('swagger-ui-express');
+const openapiSpec = require('./openapi.json');
+
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
+
 const PORT = 3000;
 
 let tasks = [
@@ -51,7 +56,7 @@ let tasks = [
   
     res.status(201).json(newTask);
   });
-  
+
   app.put('/tasks/:id', (req, res) => {
     const id = Number(req.params.id);
     const task = tasks.find(t => t.id === id);
