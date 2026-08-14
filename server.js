@@ -61,18 +61,18 @@ let tasks = [
   });
 
   app.post('/tasks', (req, res) => {
-    const { title } = req.body;
-  
-    if (!title || title.trim() === '') {
-      return res.status(400).json({ error: 'Title is required' });
-    }
-  
-    const nextId = tasks.length > 0 ? Math.max(...tasks.map(t => t.id)) + 1 : 1;
-  
-    const newTask = { id: nextId, title, done: false };
-    tasks.push(newTask);
-  
-    res.status(201).json(newTask);
+  const { title } = req.body;
+
+  if (!title || title.trim() === '') {
+    return res.status(400).json({ error: 'Title is required' });
+  }
+
+  const insert = db.prepare('INSERT INTO tasks (title, done) VALUES (?, ?)');
+  const result = insert.run(title, 0);
+
+  const newTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(result.lastInsertRowid);
+
+  res.status(201).json(newTask);
   });
 
   app.put('/tasks/:id', (req, res) => {
