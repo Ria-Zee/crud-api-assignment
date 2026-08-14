@@ -45,18 +45,19 @@ let tasks = [
   });
 
   app.get('/tasks', (req, res) => {
-    res.json(tasks);
+  const allTasks = db.prepare('SELECT * FROM tasks').all();
+  res.json(allTasks);
   });
   
   app.get('/tasks/:id', (req, res) => {
-    const id = Number(req.params.id);
-    const task = tasks.find(t => t.id === id);
-  
-    if (!task) {
-      return res.status(404).json({ error: `Task ${id} not found` });
-    }
-  
-    res.json(task);
+  const id = Number(req.params.id);
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+
+  if (!task) {
+    return res.status(404).json({ error: `Task ${id} not found` });
+  }
+
+  res.json(task);
   });
 
   app.post('/tasks', (req, res) => {
