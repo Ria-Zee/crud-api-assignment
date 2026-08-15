@@ -26,11 +26,7 @@ app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 const PORT = 3000;
 
-let tasks = [
-    { id: 1, title: 'Buy milk', done: false },
-    { id: 2, title: 'Walk the dog', done: false },
-    { id: 3, title: 'Finish assignment', done: true }
-  ];
+
 
   app.get('/', (req, res) => {
     res.json({
@@ -76,35 +72,38 @@ let tasks = [
   });
 
   app.put('/tasks/:id', (req, res) => {
-    const id = Number(req.params.id);
-    const task = tasks.find(t => t.id === id);
-  
-    if (!task) {
-      return res.status(404).json({ error: `Task ${id} not found` });
-    }
-  
-    const { title, done } = req.body;
-  
-    if (title !== undefined && title.trim() === '') {
-      return res.status(400).json({ error: 'Title cannot be empty' });
-    }
-  
-    if (title !== undefined) task.title = title;
-    if (done !== undefined) task.done = done;
-  
-    res.json(task);
+  const id = Number(req.params.id);
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+
+  if (!task) {
+    return res.status(404).json({ error: `Task ${id} not found` });
+  }
+
+  const { title, done } = req.body;
+
+  if (title !== undefined && title.trim() === '') {
+    return res.status(400).json({ error: 'Title cannot be empty' });
+  }
+
+  const updatedTitle = title !== undefined ? title : task.title;
+  const updatedDone = done !== undefined ? (done ? 1 : 0) : task.done;
+
+  db.prepare('UPDATE tasks SET title = ?, done = ? WHERE id = ?').run(updatedTitle, updatedDone, id);
+
+  const updatedTask = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+  res.json(updatedTask);
   });
   
   app.delete('/tasks/:id', (req, res) => {
-    const id = Number(req.params.id);
-    const index = tasks.findIndex(t => t.id === id);
-  
-    if (index === -1) {
-      return res.status(404).json({ error: `Task ${id} not found` });
-    }
-  
-    tasks.splice(index, 1);
-    res.status(204).send();
+  const id = Number(req.params.id);
+  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+
+  if (!task) {
+    return res.status(404).json({ error: `Task ${id} not found` });
+  }
+
+  db.prepare('DELETE FROM tasks WHERE id = ?').run(id);
+  res.status(204).send();
   });
 
 app.listen(PORT, () => {
