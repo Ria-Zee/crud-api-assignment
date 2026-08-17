@@ -27,6 +27,35 @@ Server runs on `http://localhost:3000`.
 
 Interactive docs available at `http://localhost:3000/docs` once the server is running.
 
+## Database
+
+This project stores tasks in SQLite instead of memory, using `better-sqlite3`.
+
+**Why SQLite:** it's a single file, no server to install or run, and zero configuration — perfect for a project this size, and it means data survives a server restart.
+
+**Where the database lives:** `tasks.db`, created automatically the first time the server starts. It's git-ignored, so every clone of this repo starts with its own fresh, auto-seeded database rather than inheriting mine.
+
+**Run it:**
+
+```
+npm install
+node server.js
+```
+
+The `tasks` table and 3 example tasks are created automatically on first run.
+
+**Database browser:**
+
+![DB Browser](db-browser-screenshot.png)
+
+**Example query run by hand in DB Browser:**
+
+```
+SELECT * FROM tasks WHERE done = 1;
+```
+
+Before marking "Buy milk" as done, this returned 1 row (just "Finish assignment"). After updating task 1's `done` field to 1 directly in DB Browser, re-running the same query returned 2 rows — and calling `GET /tasks` through the API immediately reflected the change, with no restart needed. That's the whole point: the API and DB Browser read the exact same file, so there's nothing to keep in sync.
+
 ![Swagger UI](swagger-screenshot.png)
 
 ## Example request
