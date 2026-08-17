@@ -2,3 +2,6 @@ node_modules/
 .DS_Store
 __pycache__/
 tasks.db
+ai-version-week3/tasks.db
+ai-version-week3/tasks.db-shm
+ai-version-week3/tasks.db-wal
