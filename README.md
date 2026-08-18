@@ -61,6 +61,10 @@ This project now stores tasks in PostgreSQL, running in a Docker container, usin
       3 | Finish assignment | t
     (3 rows)
 
+**Database screenshot:**
+
+![Postgres data](postgres-screenshot.png)
+
 **Persistence confirmed:** created a task via `POST /tasks`, ran `docker compose down` then `docker compose up`, and the task was still there — the volume, not the container, holds the data.
 
 ## Database — Week 2 (SQLite)
