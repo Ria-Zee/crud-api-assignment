@@ -25,21 +25,20 @@ const PORT = 3000;
     res.json({ status: 'ok' });
   });
 
-  app.get('/tasks', (req, res) => {
-  const allTasks = db.prepare('SELECT * FROM tasks').all();
-  res.json(allTasks);
-  });
-  
-  app.get('/tasks/:id', (req, res) => {
-  const id = Number(req.params.id);
-  const task = db.prepare('SELECT * FROM tasks WHERE id = ?').get(id);
+  app.get('/tasks', async (req, res) => {
+  const { rows } = await pool.query('SELECT * FROM tasks');
+  res.json(rows);
+});
 
+app.get('/tasks/:id', async (req, res) => {
+  const id = Number(req.params.id);
+  const { rows } = await pool.query('SELECT * FROM tasks WHERE id = $1', [id]);
+  const task = rows[0];
   if (!task) {
     return res.status(404).json({ error: `Task ${id} not found` });
   }
-
   res.json(task);
-  });
+});
 
   app.post('/tasks', (req, res) => {
   const { title } = req.body;
