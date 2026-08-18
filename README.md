@@ -1,15 +1,30 @@
 # Task API
 
-A minimal CRUD API for managing a to-do list. Built with Express, in-memory storage (no database — data resets on restart).
+A minimal CRUD API for managing a to-do list. Built with Express, backed by PostgreSQL running in Docker.
 
 ## Run it
 
+One command starts the whole stack — the app and its Postgres database, both in Docker:
+
 ```bash
-npm install
-node server.js
+cp .env.example .env
+docker compose up
 ```
 
 Server runs on `http://localhost:3000`.
+
+### Environment variables
+
+`DATABASE_URL` — the Postgres connection string. See `.env.example`. Note: when running via `docker compose up`, the app reaches Postgres through the internal service name `db`, not `localhost` — that value is already set inside `compose.yaml` and does not read from `.env`. The `.env` file only matters if you run the app directly with `node --env-file=.env server.js` against a hand-run Postgres container (see below).
+
+### Running without Docker Compose
+
+```bash
+docker run --name taskdb -e POSTGRES_PASSWORD=dev -e POSTGRES_DB=tasks \
+  -p 5432:5432 -v taskdata:/var/lib/postgresql/data -d postgres:16
+npm install
+node --env-file=.env server.js
+```
 
 ## Endpoints
 
@@ -27,7 +42,28 @@ Server runs on `http://localhost:3000`.
 
 Interactive docs available at `http://localhost:3000/docs` once the server is running.
 
-## Database
+## Database — Week 3 (Postgres + Docker)
+
+This project now stores tasks in PostgreSQL, running in a Docker container, using the `pg` driver. All database logic lives in `db.js`, kept separate from the routes in `server.js`.
+
+**Why Postgres:** it's a real database server, the same engine behind most production backends, not a single file like SQLite. Running it in Docker means no local install, no version conflicts, and the exact same container runs on any machine.
+
+**Where the database lives:** inside the `db` container defined in `compose.yaml`, backed by a named Docker volume (`taskdata`) so data survives a full `docker compose down` and `up`.
+
+**Confirmed via psql:**
+
+    docker exec -it taskdb psql -U postgres -d tasks -c "SELECT * FROM tasks;"
+
+    id |       title       | done
+    ----+-------------------+------
+      1 | Buy milk          | f
+      2 | Walk the dog      | f
+      3 | Finish assignment | t
+    (3 rows)
+
+**Persistence confirmed:** created a task via `POST /tasks`, ran `docker compose down` then `docker compose up`, and the task was still there — the volume, not the container, holds the data.
+
+## Database — Week 2 (SQLite)
 
 This project stores tasks in SQLite instead of memory, using `better-sqlite3`.
 
@@ -105,7 +141,7 @@ FastAPI generates Swagger UI automatically at /docs with zero extra code. My Exp
 
 I never said in-memory, no database explicitly, and got lucky that it chose in-memory anyway. I never specified the task object's shape, the DELETE status code, or the exact status code for validation failures. Every one of those gaps got filled by the framework's defaults rather than my intent. That is the actual lesson here: a spec is only as tight as what you write down, not what you assume is obvious.
 
-## AI vs me — Week 3 (SQLite migration)
+## AI vs me — Week 2 (SQLite migration)
 
 ### My prompt
 
