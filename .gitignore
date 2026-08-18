@@ -5,3 +5,4 @@ tasks.db
 ai-version-week3/tasks.db
 ai-version-week3/tasks.db-shm
 ai-version-week3/tasks.db-wal
+.env
