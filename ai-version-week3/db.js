@@ -1,16 +1,24 @@
-const path = require('path');
-const Database = require('better-sqlite3');
-const DB_PATH = path.join(__dirname, 'tasks.db');
-const db = new Database(DB_PATH);
+require('dotenv').config();
+const { Pool } = require('pg');
 
-db.pragma('journal_mode = WAL');
+const required = ['PGHOST', 'PGPORT', 'PGUSER', 'PGPASSWORD', 'PGDATABASE'];
+for (const key of required) {
+  if (!process.env[key]) {
+    throw new Error(`Missing required env var: ${key}. Check your .env file.`);
+  }
+}
 
-db.exec(`
-  CREATE TABLE IF NOT EXISTS tasks (
-    id    INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT    NOT NULL,
-    done  INTEGER NOT NULL DEFAULT 0 CHECK (done IN (0,1))
-  );
-`);
+const pool = new Pool({
+  host: process.env.PGHOST,
+  port: Number(process.env.PGPORT),
+  user: process.env.PGUSER,
+  password: process.env.PGPASSWORD,
+  database: process.env.PGDATABASE,
+});
 
-module.exports = db;
+pool.on('error', (err) => {
+  console.error('Unexpected Postgres pool error', err);
+  process.exit(1);
+});
+
+module.exports = pool;

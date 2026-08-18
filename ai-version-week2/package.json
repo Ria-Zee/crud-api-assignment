@@ -1,0 +1,14 @@
+{
+    "name": "task-api",
+    "version": "1.0.0",
+    "description": "CRUD task API, migrated from in-memory storage to SQLite (better-sqlite3)",
+    "main": "server.js",
+    "type": "commonjs",
+    "scripts": {
+      "start": "node server.js",
+      "test": "node test/run-tests.js"
+    },
+    "dependencies": {
+      "better-sqlite3": "^11.3.0"
+    }
+  }
