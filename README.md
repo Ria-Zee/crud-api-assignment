@@ -178,3 +178,45 @@ I never said whether `done` should come back as `0`/`1` or `true`/`false` in API
 ### A false negative worth noting
 
 The first time I ran the AI's test suite, 6 of 11 assertions failed. The cause wasn't the AI's code, it was a port collision: my own Week 2/3 server was still running on port 3000 while the test tried to spawn its own server on the same port, so the tests were silently hitting the wrong server the whole time. After stopping my server and rerunning in isolation, all 11 assertions passed. Lesson: a failing test isn't proof of a bug until you've confirmed what it actually tested.
+
+## AI vs me — Week 3 (Postgres + Docker)
+
+### My prompt
+
+You're a Senior Backend Engineer. Containerize your CRUD API Database following these stages;
+
+Stage 0: Use Postgres with one command and install Docker Desktop. Confirm the docker inside the container, the Add .gitignore with .env before you commit.
+
+Stage 1: Connect and create the tasks table (id, title, done) if missing, seed 3 tasks only if empty. Create .env and .env.example file, then install pg driver. Note: "Never hardcode the password".
+
+Stage 2: Read from Postgres and swap GET /tasks and GET /tasks/:id to real Postgres queries using $1 parameterized placeholders. Use these status code; PUT returns 200 with updated row, 201 for created, 204 for DELETE returns, 400 for missing/empty title and 404 for unknown id.
+
+Stage 3: Create, update, delete. POST uses INSERT. Use the same status code as stage 2
+
+Stage 4: Write a Dockerfile for your app, then a compose.yaml with two services (api + db). Inside compose, your app reaches Postgres via the service name db for volume use Postgres's data directory, not local host. Stop your hand-run container, run docker compose up then down thrice to confirm if data survives.
+
+Stage 5: Publish and push to github
+
+### What the AI did better
+
+It added a `healthcheck` on the `db` service (`pg_isready`) and made `api` depend on `condition: service_healthy` instead of a plain `depends_on`. This is a real fix for a problem I actually hit: my own stack uses `restart: on-failure`, so on a cold start my `api` container crashes with `ECONNREFUSED` and retries until Postgres is ready. The AI's version waits until Postgres genuinely reports ready before starting `api` at all, no crash-loop, no error in the logs. It's strictly the better solution, and it's literally listed as a stretch goal in the assignment brief that I didn't attempt.
+
+It also wrapped every route in try/catch with a 500 fallback, which mine doesn't have, and its `db.js` fails loudly on startup if any required env var is missing, instead of failing silently later. Its `Dockerfile` uses `node:20-alpine` for a smaller image and `npm install --omit=dev`, both reasonable defaults I didn't specify.
+
+### What it got wrong or silently ignored
+
+Its `server.js` calls `init()` inside the `app.listen()` callback, meaning the server starts accepting connections before the table is guaranteed to exist. A request landing in that window would hit a query against a table that isn't there yet. My version calls `init()` first and only starts listening once it succeeds, which is safer and matches what the assignment's own Stage 1 checkpoint tests for.
+
+It also dropped my `/` and `/health` routes entirely, despite its own write-up specifically flagging that a health endpoint matters for orchestrators, it didn't build one anyway. And its PUT route requires `title` on every request; sending only `{"done": true}` gets rejected with 400. My version supports partial updates, falling back to the existing value for any field not sent.
+
+It also generated an empty .env.example file. My prompt explicitly said "Create .env and .env.example file," and its own summary claimed this was done ("Copy .env.example to .env... .env.example is not [gitignored]"), but the actual file has no content. Given its db.js uses five discrete env vars instead of a single DATABASE_URL, an empty .env.example means a stranger cloning this AI-generated version wouldn't know what values to set without reading db.js first — the exact kind of self-documenting gap the assignment brief is testing for.
+
+### What my prompt forgot to specify, and what the AI silently decided for me
+
+I never said whether PUT should require a full replacement or allow partial updates. The AI picked the stricter interpretation without flagging it as a decision.
+
+I also never specified the connection string format. My own `db.js` uses a single `DATABASE_URL`. The AI's `db.js` uses five discrete env vars (`PGHOST`, `PGPORT`, `PGUSER`, `PGPASSWORD`, `PGDATABASE`) instead. Neither is wrong, but they're incompatible: I couldn't drop the AI's `db.js` into my own `compose.yaml` without also rewriting my `.env` and `.env.example` to match its convention.
+
+### One rematch
+
+I regenerated with two additions: specifying `DATABASE_URL` as a single connection string in the same format my own `db.js` uses, and requiring PUT to support partial updates (only a title that is present and empty should 400). Both landed correctly. The new `db.js` uses `connectionString: process.env.DATABASE_URL`, matching my setup exactly, and the new PUT route uses `COALESCE($1, title)` in the SQL itself combined with `hasOwnProperty` checks, so an omitted field keeps its value and an explicitly-sent `null` is handled distinctly from an omitted one, a case my own prompt never asked about. The `init()`-after-`listen()` bug from the first run is still there, unchanged, since I didn't ask it to fix that, confirming the rematch was a targeted fix, not a full regeneration.

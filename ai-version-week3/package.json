@@ -1,14 +1,14 @@
 {
-    "name": "task-api",
-    "version": "1.0.0",
-    "description": "CRUD task API, migrated from in-memory storage to SQLite (better-sqlite3)",
-    "main": "server.js",
-    "type": "commonjs",
-    "scripts": {
-      "start": "node server.js",
-      "test": "node test/run-tests.js"
-    },
-    "dependencies": {
-      "better-sqlite3": "^11.3.0"
-    }
+  "name": "tasks-api",
+  "version": "1.0.0",
+  "description": "CRUD API for tasks, backed by Postgres",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "pg": "^8.12.0"
   }
+}
