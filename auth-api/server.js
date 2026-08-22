@@ -1,10 +1,13 @@
 require('dotenv').config();
 const express = require('express');
 const { createRemoteJWKSet, jwtVerify } = require('jose');
+const swaggerUi = require('swagger-ui-express');
+const openapiSpec = require('./openapi.json');
 const auth = require('./auth');
 
 const app = express();
 app.use(express.json());
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 const PORT = process.env.PORT || 3000;
 
