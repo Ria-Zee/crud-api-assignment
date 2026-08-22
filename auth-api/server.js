@@ -72,8 +72,8 @@ app.get('/public/info', (req, res) => {
   res.status(200).json({ message: 'Welcome stranger! This info is public.' });
 });
 
-// GET /protected/profile — Stage 3: real verification against Neon Auth's JWKS
-app.get('/protected/profile', async (req, res) => {
+// Reusable auth guard — verifies the bearer token and attaches the user to req.user
+async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ')
     ? authHeader.split(' ')[1]
@@ -85,14 +85,34 @@ app.get('/protected/profile', async (req, res) => {
 
   try {
     const { payload } = await jwtVerify(token, JWKS);
-    res.status(200).json({
+    req.user = {
       id: payload.sub,
       email: payload.email,
       createdAt: payload.createdAt,
-    });
+    };
+    req.token = token;
+    next();
   } catch (err) {
     return res.status(401).json({ error: 'Invalid or expired token' });
   }
+}
+
+// GET /protected/profile — Stage 4: uses the shared middleware
+app.get('/protected/profile', requireAuth, (req, res) => {
+  res.status(200).json(req.user);
+});
+
+// GET /protected/dashboard — proves the middleware is reusable, no new auth code
+app.get('/protected/dashboard', requireAuth, (req, res) => {
+  res.status(200).json({ message: `Welcome to your dashboard, ${req.user.email}` });
+});
+
+// POST /auth/logout — protected route, ends the session
+app.post('/auth/logout', requireAuth, async (req, res) => {
+  await auth.signOut({
+    fetchOptions: { headers: { Authorization: `Bearer ${req.token}` } },
+  });
+  res.status(204).send();
 });
 
 app.listen(PORT, () => {
