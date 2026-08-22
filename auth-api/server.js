@@ -1,11 +1,14 @@
 require('dotenv').config();
 const express = require('express');
+const { createRemoteJWKSet, jwtVerify } = require('jose');
 const auth = require('./auth');
 
 const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
+
+const JWKS = createRemoteJWKSet(new URL(process.env.JWKS_URL));
 
 function isValid(value) {
   return typeof value === 'string' && value.trim().length > 0;
@@ -69,8 +72,8 @@ app.get('/public/info', (req, res) => {
   res.status(200).json({ message: 'Welcome stranger! This info is public.' });
 });
 
-// GET /protected/profile — Stage 2: only checks a token was presented, doesn't verify it yet
-app.get('/protected/profile', (req, res) => {
+// GET /protected/profile — Stage 3: real verification against Neon Auth's JWKS
+app.get('/protected/profile', async (req, res) => {
   const authHeader = req.headers.authorization;
   const token = authHeader && authHeader.startsWith('Bearer ')
     ? authHeader.split(' ')[1]
@@ -80,7 +83,16 @@ app.get('/protected/profile', (req, res) => {
     return res.status(401).json({ error: 'Access token required' });
   }
 
-  res.status(200).json({ message: 'Token present, not yet verified' });
+  try {
+    const { payload } = await jwtVerify(token, JWKS);
+    res.status(200).json({
+      id: payload.sub,
+      email: payload.email,
+      createdAt: payload.createdAt,
+    });
+  } catch (err) {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
 });
 
 app.listen(PORT, () => {
