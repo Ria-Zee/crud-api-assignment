@@ -1,4 +1,6 @@
-import { fetchPage } from './fetcher.js';
+import { discoverCatalogue } from './crawler.js';
 
-const url = 'https://books.toscrape.com/catalogue/page-1.html';
-await fetchPage(url, 'catalogue-page-1');
+const result = await discoverCatalogue();
+console.log(`catalogue_pages=${result.catalogue_pages}`);
+console.log(`discovered=${result.discovered}`);
+console.log(`unique_urls=${result.unique_urls.length}`);
