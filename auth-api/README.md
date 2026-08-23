@@ -74,3 +74,45 @@ Content-Type: application/json; charset=utf-8
 
 {"token":"...","user":{"name":"test","email":"test@example.com", ...}}
 ```
+
+## AI vs me — Stage 7 (auth rematch)
+
+### My prompt
+
+You're a Senior Backend Engineer. Build a secure API that handles user authentication (Sign Up, Log In, and Log Out) and protects specific routes. You will use Node/Express lane and framework. You will use Neon Auth to manage user accounts, issue secure JSON Web Tokens (JWTs), and verify those tokens to protect "admin-only" or "user-only" API endpoints. You will test and document this flow in Swagger UI and publish your code to GitHub.
+
+1. Sign Up / Log In: The client sends credentials (email and password) directly to Neon Auth.
+2. The Token: Neon Auth validates the credentials and returns a JWT (Access Token).
+3. The Request: The client sends a request to your backend server, attaching the JWT inside an Authorization Header
+4. Verification: Your backend server decodes and verifies the JWT via a live call to the provider. If the token is valid, your server opens the protected door and sends the response.
+
+Also provide proof of reusable middleware — a second protected route using the same guard function, no new auth code.
+
+Follow these five routes; Signup, login, logout, public/info, protected/profile
+
+Status Code will be;
+201 for created
+200 for success ok
+204 for no content/empty
+return 400 missing/empty email/password validation
+401 for unauthorized/invalid or expired token
+
+### What the AI did better
+
+It added `helmet` for a full set of security response headers (CSP, X-Frame-Options, HSTS, etc.), which my own implementation doesn't have. Its JWT verification checks the `iss` claim against the Neon Auth base URL; mine only checks the signature. It mounts the auth guard once at the router level (`router.use(verifyToken)`) so both protected routes inherit it automatically, rather than passing the middleware into each route individually like mine does. It also creates a fresh Neon Auth client per request rather than one shared client for the server's lifetime, reasoning in a code comment that a shared client could leak one user's session state into another user's request on a multi-tenant backend — a concurrency concern I never tested for in my own version. Its 401 responses on invalid tokens include a `reason` field with the specific JWT verification error code, which is more useful for debugging than my generic message (though it's also a small amount of extra information handed to anyone probing the endpoint).
+
+### What it got wrong or silently ignored
+
+Three real bugs, all confirmed by actually running the generated code, not by reading it:
+
+- **A hallucinated package version.** `package.json` specified `@neondatabase/auth@^0.3.0`, which doesn't exist on npm — the real latest version is `0.5.0-beta`. This blocked `npm install` entirely until I corrected it by hand.
+- **No `Origin` header on outgoing requests**, despite my prompt explicitly describing a live call to the provider. The very first signup attempt crashed the entire server with an uncaught `AuthApiError: Origin header is required` — the exact issue I hit myself in Stage 1, but the AI had no way to know that without being told, since my original prompt didn't mention it.
+- **Read `data.session.token` instead of `data.token`.** The real response shape from `signIn.email()`/`signUp.email()` is `{ token, user }`, confirmed repeatedly against my own working server — there is no nested `session` object. In the signup route this failed silently: optional chaining (`data.session?.token`) meant the response still came back `201 Created` but with `token: null`, no error shown anywhere. In the login route, the same access without optional chaining (`data.session.token`) threw an uncaught `TypeError` and crashed the server outright on every login attempt.
+
+### What my prompt forgot to specify, and what the AI silently decided for me
+
+I never told it that `signUp.email()` requires a `name` field — the same gap in my own first prompt back in Stage 1. It correctly guessed a sensible default (`name || email.split("@")[0]`), the identical workaround I built myself, without me ever mentioning that requirement existed. I also asked for verification "via a live call to the provider," which it satisfied by fetching Neon Auth's JWKS public keys (network call, cached) and verifying the JWT signature locally — a defensible reading of "live call," but not a literal per-request round-trip like Supabase's `getUser(token)`. It documented this interpretation directly in a code comment rather than silently picking one, which I think is the right way to handle a genuinely ambiguous instruction.
+
+### One rematch
+
+I regenerated with two specific corrections: telling it the real response shape is `{ token, user }` with no nested `session` object, and that every outgoing call needs an explicit `Origin` header matching the server's own URL. Both landed correctly and were confirmed by actually re-running the code: signup and login both now return real, usable tokens instead of `null` or a server crash. The rematch was targeted, not a full regeneration — the unrelated package-version bug, which I deliberately didn't mention in the rematch prompt, was still present afterward, confirming the fix only touched what was actually asked for.
