@@ -1,0 +1,26 @@
+{
+  "name": "neon-auth-api",
+  "version": "1.0.0",
+  "description": "Secure Express API using Neon Auth for signup, login, logout, and JWT-protected routes.",
+  "main": "src/server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js"
+  },
+  "keywords": ["neon-auth", "jwt", "express", "authentication"],
+  "license": "MIT",
+  "dependencies": {
+    "@neondatabase/auth": "^0.5.0-beta",
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.0",
+    "helmet": "^7.1.0",
+    "jose": "^5.9.6",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
