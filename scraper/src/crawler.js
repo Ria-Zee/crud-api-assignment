@@ -13,7 +13,7 @@ function sleep(ms) {
  * following the site's own "next" link rather than hardcoding page numbers.
  */
 export async function discoverCatalogue() {
-  const bookUrls = new Set();
+  const bookUrls = new Map(); // bookUrl -> catalogue page it was found on
   let pageUrl = BASE_CATALOGUE_URL;
   let pageCount = 0;
   const maxPages = 3;
@@ -24,17 +24,20 @@ export async function discoverCatalogue() {
 
     const html = await fetchPage(pageUrl, cacheKey);
     const $ = cheerio.load(html);
+    const currentPageUrl = pageUrl;
 
     $('article.product_pod h3 a').each((_, el) => {
       const href = $(el).attr('href');
-      const absoluteUrl = new URL(href, pageUrl).href;
-      bookUrls.add(absoluteUrl);
+      const absoluteUrl = new URL(href, currentPageUrl).href;
+      if (!bookUrls.has(absoluteUrl)) {
+        bookUrls.set(absoluteUrl, currentPageUrl);
+      }
     });
 
     pageCount += 1;
 
     const nextHref = $('li.next a').attr('href');
-    pageUrl = nextHref ? new URL(nextHref, pageUrl).href : null;
+    pageUrl = nextHref ? new URL(nextHref, currentPageUrl).href : null;
 
     if (pageUrl && !wasCached) {
       await sleep(DELAY_MS);
@@ -44,10 +47,10 @@ export async function discoverCatalogue() {
   return {
     catalogue_pages: pageCount,
     discovered: bookUrls.size,
-    unique_urls: [...bookUrls],
+    unique_urls: [...bookUrls.keys()],
+    sourcePageFor: bookUrls,
   };
 }
-
 // Cheap check so we only delay after a real network fetch, never after a cache hit
 async function isFreshFetch(cacheKey) {
   const { existsSync } = await import('fs');
