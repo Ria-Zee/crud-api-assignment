@@ -20,11 +20,17 @@ export async function discoverCatalogue() {
 
   while (pageUrl && pageCount < maxPages) {
     const cacheKey = `catalogue-page-${pageCount + 1}`;
-    const wasCached = !(await isFreshFetch(cacheKey));
-
-    const html = await fetchPage(pageUrl, cacheKey);
-    const $ = cheerio.load(html);
     const currentPageUrl = pageUrl;
+
+    let html, wasCached;
+    try {
+      ({ html, wasCached } = await fetchPage(currentPageUrl, cacheKey));
+    } catch (err) {
+      console.log(`SKIP (catalogue) ${currentPageUrl}: ${err.message}`);
+      break; // can't discover further pages without this one
+    }
+
+    const $ = cheerio.load(html);
 
     $('article.product_pod h3 a').each((_, el) => {
       const href = $(el).attr('href');
@@ -50,11 +56,4 @@ export async function discoverCatalogue() {
     unique_urls: [...bookUrls.keys()],
     sourcePageFor: bookUrls,
   };
-}
-// Cheap check so we only delay after a real network fetch, never after a cache hit
-async function isFreshFetch(cacheKey) {
-  const { existsSync } = await import('fs');
-  const path = await import('path');
-  const cacheDir = new URL('../cache/', import.meta.url).pathname;
-  return existsSync(path.join(cacheDir, `${cacheKey}.html`));
 }

@@ -1,0 +1,10 @@
+{
+  "start_time": "2026-08-24T21:33:32.740Z",
+  "duration_ms": 6222,
+  "catalogue_pages_fetched": 3,
+  "detail_pages_attempted": 60,
+  "detail_pages_fetched": 60,
+  "valid_records": 60,
+  "invalid_records": 0,
+  "failed_pages": 0
+}

@@ -1,6 +1,4 @@
 import * as cheerio from 'cheerio';
-import { existsSync } from 'fs';
-import path from 'path';
 import { fetchPage } from './fetcher.js';
 
 const DELAY_MS = 600;
@@ -18,13 +16,12 @@ function cacheKeyFor(url) {
 /**
  * Fetch and parse one book detail page into a raw record.
  * All 8 keys are always present; description is null when the page has none.
+ * Throws on fetch failure — the caller is responsible for isolating that
+ * failure so it doesn't take down the whole run.
  */
 export async function extractBook(bookUrl, sourcePage) {
   const cacheKey = cacheKeyFor(bookUrl);
-  const cacheDir = new URL('../cache/', import.meta.url).pathname;
-  const wasCached = existsSync(path.join(cacheDir, `${cacheKey}.html`));
-
-  const html = await fetchPage(bookUrl, cacheKey);
+  const { html, wasCached } = await fetchPage(bookUrl, cacheKey);
   const $ = cheerio.load(html);
 
   const productMain = $('.product_main');
