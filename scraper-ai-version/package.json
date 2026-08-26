@@ -1,0 +1,16 @@
+{
+  "name": "book-scraper",
+  "version": "1.0.0",
+  "description": "Polite 3-page scraper for books.toscrape.com -> checked JSON",
+  "main": "src/main.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node src/main.js",
+    "start:no-cache": "node src/main.js --no-cache",
+    "test": "node test/run-tests.js"
+  },
+  "dependencies": {},
+  "license": "MIT"
+}
