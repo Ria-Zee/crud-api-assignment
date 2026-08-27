@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import { InputSchema, OutputSchema } from './llm/schema.js';
+import { callModel } from './llm/client.js';
 
 const app = express();
 app.use(express.json());
@@ -31,8 +32,8 @@ app.post('/enrich', async (req, res) => {
     return res.status(200).json(OutputSchema.parse(stub));
   }
 
-  // Real model call comes in Stage 2 — for now, tell the truth about what's missing.
-  return res.status(501).json({ error: 'Model call not yet implemented (Stage 2)' });
+  const result = await callModel(parsedInput.data);
+  return res.status(200).json({ raw_model_output: result.text });
 });
 
 app.listen(PORT, () => {
