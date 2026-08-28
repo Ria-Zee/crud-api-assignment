@@ -21,22 +21,27 @@ const client = new OpenAI({
  * Call the model with the book record as a separate user message.
  * Returns the raw text content — parsing and validation happen elsewhere (Stage 3).
  */
-export async function callModel(input) {
-  const systemPrompt = await loadSystemPrompt();
-
-  const response = await client.chat.completions.create({
-    model: process.env.LLM_MODEL,
-    temperature: 0,
-    messages: [
+export async function callModel(input, repairMessage = null) {
+    const systemPrompt = await loadSystemPrompt();
+  
+    const messages = [
       { role: 'system', content: systemPrompt },
       { role: 'user', content: JSON.stringify(input) },
-    ],
-  });
-
-  return {
-    text: response.choices[0].message.content,
-    usage: response.usage,
-  };
-}
-
+    ];
+  
+    if (repairMessage) {
+      messages.push({ role: 'user', content: repairMessage });
+    }
+  
+    const response = await client.chat.completions.create({
+      model: process.env.LLM_MODEL,
+      temperature: 0,
+      messages,
+    });
+  
+    return {
+      text: response.choices[0].message.content,
+      usage: response.usage,
+    };
+  }
 export { PROMPT_VERSION };

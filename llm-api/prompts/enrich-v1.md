@@ -6,6 +6,7 @@ You enrich scraped book catalogue records for a bookstore data pipeline. You cla
 
 ## Output shape
 
+
 Return **only** a JSON object with exactly these four fields, nothing else:
 
 ```json

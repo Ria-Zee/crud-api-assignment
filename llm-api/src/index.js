@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import { InputSchema, OutputSchema } from './llm/schema.js';
-import { callModel } from './llm/client.js';
+import { enrichWithRepair } from './llm/repair.js';
 
 const app = express();
 app.use(express.json());
@@ -32,8 +32,11 @@ app.post('/enrich', async (req, res) => {
     return res.status(200).json(OutputSchema.parse(stub));
   }
 
-  const result = await callModel(parsedInput.data);
-  return res.status(200).json({ raw_model_output: result.text });
+  const result = await enrichWithRepair(parsedInput.data);
+  if (!result.ok) {
+    return res.status(result.status).json({ error: result.error });
+  }
+  return res.status(200).json(result.data);
 });
 
 app.listen(PORT, () => {
