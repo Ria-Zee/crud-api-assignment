@@ -32,6 +32,18 @@ app.post('/enrich', async (req, res) => {
     return res.status(200).json(OutputSchema.parse(stub));
   }
 
+  if (process.env.LLM_ENABLED === 'false') {
+    return res.status(503).json({
+      error: 'LLM enrichment is currently disabled',
+      fallback: {
+        category: 'Other',
+        summary: 'Enrichment unavailable — model calls are disabled.',
+        quality_flags: [],
+        confidence: 0,
+      },
+    });
+  }
+
   const result = await enrichWithRepair(parsedInput.data);
   if (!result.ok) {
     return res.status(result.status).json({ error: result.error });

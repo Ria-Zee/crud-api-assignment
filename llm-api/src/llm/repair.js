@@ -42,7 +42,17 @@ async function logQuarantine(entry) {
  * Never throws, never returns raw model text.
  */
 export async function enrichWithRepair(input) {
-  const first = await callModel(input);
+    let first;
+    try {
+      first = await callModel(input);
+    } catch (err) {
+      if (err.isKillSwitch) throw err; // let index.js handle this separately
+      return {
+        ok: false,
+        status: err.status === 408 || err.code === 'ETIMEDOUT' ? 504 : 502,
+        error: `Model call failed: ${err.message}`,
+      };
+    }
 
   const firstParse = tryParse(first.text);
   if (firstParse.ok) {
@@ -57,7 +67,16 @@ export async function enrichWithRepair(input) {
     : `JSON parsing failed: ${firstParse.error}`;
 
   const repairPrompt = `Your previous answer was rejected for this reason: ${errorMessage}\n\nYour previous answer was:\n${first.text}\n\nReturn only corrected JSON matching the schema.`;
-  const second = await callModel(input, repairPrompt);
+  let second;
+  try {
+    second = await callModel(input, repairPrompt);
+  } catch (err) {
+    return {
+      ok: false,
+      status: err.status === 408 || err.code === 'ETIMEDOUT' ? 504 : 502,
+      error: `Repair attempt failed: ${err.message}`,
+    };
+  }
 
   const secondParse = tryParse(second.text);
   if (secondParse.ok) {
